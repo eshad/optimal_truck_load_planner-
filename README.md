@@ -12,6 +12,7 @@ A stateless NestJS REST API that optimizes truck load selection by finding the b
 
 - [Overview](#overview)
 - [Features](#features)
+- [Mobile App Integration](#mobile-app-integration)
 - [Architecture](#architecture)
 - [Algorithm](#algorithm)
 - [Getting Started](#getting-started)
@@ -50,6 +51,33 @@ A stateless NestJS REST API that optimizes truck load selection by finding the b
 - Interactive Swagger API documentation
 - Docker containerization with health checks
 - Production-ready logging
+- Mobile-ready REST API (React Native, iOS, Android)
+
+---
+
+## Mobile App Integration
+
+This microservice powers the **"Find Best Loads"** feature in the Teleport mobile app. When carriers tap the button, the app sends truck specifications and available orders to this API, which instantly returns the most profitable combination.
+
+**For mobile developers:** See [MOBILE_INTEGRATION.md](./MOBILE_INTEGRATION.md) for:
+
+- Complete integration examples (React Native, Swift, Kotlin)
+- Error handling patterns
+- UI/UX recommendations
+- Performance expectations (<200ms response time)
+
+**Quick Example (React Native):**
+
+```typescript
+const result = await axios.post(
+  'http://api-host:8080/api/v1/load-optimizer/optimize',
+  {
+    truck: userTruck,
+    orders: availableOrders,
+  },
+);
+// Display: "Best load: $1,100 with 3 orders"
+```
 
 ---
 
