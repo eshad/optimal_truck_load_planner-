@@ -36,9 +36,13 @@ pids/
 *.pid.lock
 
 # PM2
-ecosystem.config.js
-ecosystem.dev.config.js
+ecosystem*.config.js
 PM2_MONITORING.md
+
+# Temporary submission files
+HOW_TO_SUBMIT.md
+NEXT_STEPS.md
+CORS_SETUP.md
 
 # OS
 Thumbs.db

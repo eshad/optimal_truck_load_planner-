@@ -44,9 +44,13 @@ coverage
 # PM2
 logs
 *.log
-ecosystem.config.js
-ecosystem.dev.config.js
+ecosystem*.config.js
 PM2_MONITORING.md
+
+# Submission helper files (not needed in container)
+HOW_TO_SUBMIT.md
+NEXT_STEPS.md
+CORS_SETUP.md
 
 # Misc
 .prettierrc
