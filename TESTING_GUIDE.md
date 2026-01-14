@@ -1,48 +1,38 @@
-# SmartLoad Optimizer - Testing Guide
+# Testing Guide
 
-This guide provides step-by-step instructions to test the Optimal Truck Load Planner API.
+## Running the API
 
----
-
-## Quick Start
-
-### 1. Run with Docker (Recommended)
+**Docker (easiest):**
 
 ```bash
-# Build and start the container
 docker-compose up --build
-
-# Or run in detached mode
-docker-compose up --build -d
-
-# View logs
-docker-compose logs -f
-
-# Stop the container
-docker-compose down
 ```
 
-### 2. Run Locally (Development)
+**Local:**
 
 ```bash
-# Install dependencies
 npm install
-
-# Run in development mode (with hot reload)
-npm run start:dev
-
-# Or build and run in production mode
 npm run build
 npm run start:prod
 ```
 
----
+Server starts on http://localhost:8080
 
-## Testing the API
+## Testing Methods
 
-### Method 1: Using cURL
+### 1. Swagger UI (recommended for quick testing)
 
-**Test with sample request:**
+Open http://localhost:8080/api in your browser
+
+1. Find the POST `/api/v1/load-optimizer/optimize` endpoint
+2. Click "Try it out"
+3. Edit the request body if you want
+4. Click "Execute"
+5. See the response below
+
+### 2. cURL
+
+**Use the sample file:**
 
 ```bash
 curl -X POST http://localhost:8080/api/v1/load-optimizer/optimize \
@@ -50,7 +40,7 @@ curl -X POST http://localhost:8080/api/v1/load-optimizer/optimize \
   -d @sample-request.json
 ```
 
-**Manual test:**
+**Inline request:**
 
 ```bash
 curl -X POST http://localhost:8080/api/v1/load-optimizer/optimize \
@@ -61,44 +51,31 @@ curl -X POST http://localhost:8080/api/v1/load-optimizer/optimize \
       "max_weight_lbs": 10000,
       "max_volume_cuft": 1000
     },
-    "orders": [
-      {
-        "id": "ORD-001",
-        "payout_cents": 25000,
-        "weight_lbs": 1500,
-        "volume_cuft": 200,
-        "origin": "New York, NY",
-        "destination": "Los Angeles, CA",
-        "pickup_date": "2026-01-15T08:00:00Z",
-        "delivery_date": "2026-01-20T18:00:00Z",
-        "is_hazmat": false
-      }
-    ]
+    "orders": [{
+      "id": "ORD-001",
+      "payout_cents": 25000,
+      "weight_lbs": 1500,
+      "volume_cuft": 200,
+      "origin": "New York, NY",
+      "destination": "Los Angeles, CA",
+      "pickup_date": "2026-01-15T08:00:00Z",
+      "delivery_date": "2026-01-20T18:00:00Z",
+      "is_hazmat": false
+    }]
   }'
 ```
 
-### Method 2: Using Swagger UI
-
-1. Open browser to: http://localhost:8080/api
-2. Expand the **POST /api/v1/load-optimizer/optimize** endpoint
-3. Click **"Try it out"**
-4. Modify the request body or use the default
-5. Click **"Execute"**
-6. View the response below
-
-### Method 3: Using Postman
+### 3. Postman
 
 1. Create new POST request
 2. URL: `http://localhost:8080/api/v1/load-optimizer/optimize`
 3. Headers: `Content-Type: application/json`
-4. Body (raw JSON): Use sample request from `sample-request.json`
-5. Send request
+4. Body: Raw JSON, paste the request from sample-request.json
+5. Send
 
----
+## Expected Results
 
-## Expected Response
-
-**Success (200 OK):**
+**Success:**
 
 ```json
 {
@@ -112,7 +89,9 @@ curl -X POST http://localhost:8080/api/v1/load-optimizer/optimize \
 }
 ```
 
-**Validation Error (400 Bad Request):**
+The sample data has 5 orders. The API picks 3 of them (skipping the hazmat order and one lower-value order) for a total of $1,100.
+
+**Validation error:**
 
 ```json
 {
@@ -122,13 +101,11 @@ curl -X POST http://localhost:8080/api/v1/load-optimizer/optimize \
 }
 ```
 
----
-
 ## Test Scenarios
 
-### Scenario 1: Simple Valid Request
+### Basic Valid Request
 
-**Description:** 3 non-hazmat orders, all fit in truck
+3 regular orders, all fit in truck:
 
 ```json
 {
@@ -175,13 +152,11 @@ curl -X POST http://localhost:8080/api/v1/load-optimizer/optimize \
 }
 ```
 
-**Expected:** Selects all 3 orders (total: $900)
+Should select all 3 orders (total $900).
 
----
+### Hazmat Order
 
-### Scenario 2: Hazmat Order (Must Be Alone)
-
-**Description:** 1 hazmat order with high payout
+One high-paying hazmat order:
 
 ```json
 {
@@ -192,7 +167,7 @@ curl -X POST http://localhost:8080/api/v1/load-optimizer/optimize \
   },
   "orders": [
     {
-      "id": "ORD-HAZ-001",
+      "id": "HAZ-001",
       "payout_cents": 100000,
       "weight_lbs": 3000,
       "volume_cuft": 400,
@@ -217,13 +192,11 @@ curl -X POST http://localhost:8080/api/v1/load-optimizer/optimize \
 }
 ```
 
-**Expected:** Selects only the hazmat order (total: $1,000)
+Should select only the hazmat order ($1,000) because hazmat can't be mixed with regular orders.
 
----
+### Weight Limit
 
-### Scenario 3: Weight Constraint Violation
-
-**Description:** Orders exceed truck capacity
+Orders that exceed capacity when combined:
 
 ```json
 {
@@ -259,13 +232,11 @@ curl -X POST http://localhost:8080/api/v1/load-optimizer/optimize \
 }
 ```
 
-**Expected:** Selects only ORD-001 (4000 lbs, $500)
+Should select only ORD-001 (can't fit both).
 
----
+### Different Routes
 
-### Scenario 4: Different Routes (Should Reject)
-
-**Description:** Orders with different origins/destinations
+Orders with different origins/destinations:
 
 ```json
 {
@@ -301,124 +272,88 @@ curl -X POST http://localhost:8080/api/v1/load-optimizer/optimize \
 }
 ```
 
-**Expected:** Selects only 1 order (cannot combine different routes)
+Should select only one order (can't combine different routes).
 
----
+### Validation Error
 
-### Scenario 5: Validation Error - Too Many Orders
-
-```bash
-# This should fail validation
-curl -X POST http://localhost:8080/api/v1/load-optimizer/optimize \
-  -H "Content-Type: application/json" \
-  -d '{
-    "truck": {"id": "T1", "max_weight_lbs": 10000, "max_volume_cuft": 1000},
-    "orders": [... 23 orders ...]
-  }'
-```
-
-**Expected:** 400 Bad Request with validation error
-
----
-
-## Verify Docker Health
+Too many orders:
 
 ```bash
-# Check container status
-docker-compose ps
-
-# Check health status
-docker inspect smartload-optimizer-api --format='{{.State.Health.Status}}'
-
-# View container logs
-docker-compose logs -f
+# Create a request with 23 orders (max is 22)
+# Should get 400 Bad Request with validation error
 ```
 
----
+## Performance Check
 
-## Performance Testing
-
-Test with maximum orders (22):
+Test with different order counts:
 
 ```bash
-# Generate test with 22 orders
-# Algorithm should complete in < 500ms
-
-time curl -X POST http://localhost:8080/api/v1/load-optimizer/optimize \
-  -H "Content-Type: application/json" \
-  -d @large-request.json
+# 5 orders - should be instant (<10ms)
+# 10 orders - still fast (<20ms)
+# 22 orders - under 200ms
 ```
-
----
 
 ## Troubleshooting
 
-### Port Already in Use
+**Port already in use:**
 
 ```bash
-# Stop any running instance
-docker-compose down
-pkill -f "node dist/main"
+# Kill any process on port 8080
+lsof -ti:8080 | xargs kill -9
 
-# Check what's using port 8080
-lsof -i :8080
+# Or change port in docker-compose.yml
 ```
 
-### Container Won't Start
+**Container won't start:**
 
 ```bash
-# View detailed logs
-docker-compose logs --tail=100
+# Check logs
+docker-compose logs
 
 # Rebuild from scratch
 docker-compose down -v
 docker-compose up --build
 ```
 
-### API Returns 404
+**API returns 404:**
 
-- Verify correct endpoint: `/api/v1/load-optimizer/optimize`
-- Check container is running: `docker-compose ps`
-- View logs: `docker-compose logs`
+- Make sure you're using the full path: `/api/v1/load-optimizer/optimize`
+- Check server is running: `docker-compose ps`
 
----
+**Validation errors:**
 
-## API Endpoints Summary
+- Check all required fields are present
+- Payout must be integer (not decimal)
+- Dates must be ISO 8601 format
+- Max 22 orders
 
-| Endpoint                          | Method | Description                |
-| --------------------------------- | ------ | -------------------------- |
-| `/api`                            | GET    | Swagger UI documentation   |
-| `/api-json`                       | GET    | OpenAPI JSON specification |
-| `/api/v1/load-optimizer/optimize` | POST   | Main optimization endpoint |
-
----
-
-## Clean Up
+## Docker Commands
 
 ```bash
-# Stop containers
+# Start
+docker-compose up -d
+
+# Logs
+docker-compose logs -f
+
+# Stop
 docker-compose down
 
-# Remove all containers and volumes
-docker-compose down -v
+# Rebuild
+docker-compose up --build
 
-# Remove built images
-docker rmi optimal_truck_load_planner-smartload-optimizer
+# Remove everything
+docker-compose down -v
 ```
 
----
+## Health Check
 
-## Success Criteria
+```bash
+# Check if API is responding
+curl http://localhost:8080/
 
-- [ ] Server starts on port 8080
-- [ ] Swagger UI accessible at http://localhost:8080/api
-- [ ] POST endpoint accepts valid requests
-- [ ] Response includes optimal order selection
-- [ ] Validation rejects invalid inputs
-- [ ] Hazmat rules enforced correctly
-- [ ] Route consistency validated
-- [ ] Container health checks pass
+# Should return something like:
+# {"message":"SmartLoad Optimizer API is running"}
+```
 
----
-
-**For more information, see the main [README.md](./README.md)**
+That's it! The API is pretty simple - one endpoint, send truck + orders, get back optimal selection.
